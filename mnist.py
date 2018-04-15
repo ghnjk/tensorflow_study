@@ -28,10 +28,11 @@ def add_layer(inputs, inSize, outSize, activation = None, layerName = "layer"):
 
 x = tf.placeholder(tf.float32, [None, 784], name = "x") # 28x28
 y = tf.placeholder(tf.float32, [None, 10], name = "y")
+keepProb = tf.placeholder(tf.float32, name = "keep_probability")
 
 
 layer1 = add_layer(x, 784, 64, tf.nn.tanh, "layer1")
-layer2 = tf.nn.dropout(layer1, 0.5, name = "layer2")
+layer2 = tf.nn.dropout(layer1, keepProb, name = "layer2")
 #layer3 = add_layer(layer2, 64, 32, tf.nn.tanh, "layer3")
 prediction = add_layer(layer1, 64, 10, tf.nn.softmax, "prediction")
 
@@ -46,10 +47,13 @@ with tf.name_scope("accuracy"):
     #yPredict = sess.run(prediction, feed_dict={x: xData})
     correctPredict = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
     accuracy = tf.reduce_mean(tf.cast(correctPredict, tf.float32))
+    tf.summary.scalar("accuracy", accuracy)
 
 init = tf.global_variables_initializer()
 
 
+xData = mnist.train.images
+yData = mnist.train.labels
 xTest = mnist.test.images
 yTest = mnist.test.labels
 
@@ -59,6 +63,7 @@ with tf.Session() as sess:
     # summaries合并
     merged = tf.summary.merge_all()
     trainWriter = tf.summary.FileWriter(logDir + '/train', sess.graph)
+    testWriter = tf.summary.FileWriter(logDir + "/test", sess.graph)
     # init
     sess.run(init)
     for i in range(2000):
@@ -66,19 +71,19 @@ with tf.Session() as sess:
         sess.run(trainStep, feed_dict = {
                 x: xBatch
                 , y: yBatch
+                , keepProb: 0.6
             })
         if i % 100 == 0:
-            result = sess.run(accuracy, feed_dict={x: xTest, y: yTest})
-            print "train " + str(i) + " loss: " + str(
-                sess.run(loss, feed_dict = {
-                    x: xTest, y: yTest
-                }))
-            print "accuracy: " + str(result)
-            rs = sess.run(merged,feed_dict = {
-                    x: xTest, y: yTest
+            trainResult = sess.run(merged,feed_dict = {
+                    x: xData, y: yData, keepProb: 1
                 })
-            trainWriter.add_summary(rs)
+            testResult = sess.run(merged,feed_dict = {
+                    x: xTest, y: yTest, keepProb: 1
+                })
+            trainWriter.add_summary(trainResult, i)
+            testWriter.add_summary(testResult, i)
     trainWriter.close()
+    testWriter.close()
 
 
 

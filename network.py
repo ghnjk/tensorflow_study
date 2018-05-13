@@ -4,7 +4,6 @@ import tensorflow as tf
 
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 
 def add_layer(inputs, inSize, outSize, activation = None, layerName = "layer"):
     with tf.name_scope(layerName):
